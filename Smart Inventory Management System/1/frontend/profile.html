@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Profile - Smart Inventory</title>
+  <link rel="stylesheet" href="../assets/style.css" />
+</head>
+<body>
+  <div class="container hidden" id="dashboard">
+    <h1>Welcome, <span id="currentUserDisplay"></span>!</h1>
+
+    <form id="addForm">
+      <h2>Add Product</h2>
+      <input type="text" id="productName" placeholder="Product Name" required />
+      <input type="number" id="productQty" placeholder="Quantity" required />
+      <select id="productCategory" required>
+        <option value="">Select category</option>
+        <option value="Electronics">Electronics</option>
+        <option value="Food">Food</option>
+        <option value="Clothing">Clothing</option>
+      </select>
+      <button type="submit">Add Product</button>
+    </form>
+
+    <h2>Products</h2>
+    <input type="text" id="searchBox" placeholder="Search product..." />
+    <select id="categoryFilter">
+      <option value="">All Categories</option>
+      <option value="Electronics">Electronics</option>
+      <option value="Food">Food</option>
+      <option value="Clothing">Clothing</option>
+    </select>
+
+    <ul id="productList"></ul>
+    <p><a href="statistics.html">View Inventory Statistics</a></p>
+    <button id="backupBtn">Download Backup CSV</button>
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+  <script src="../assets/script.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const username = localStorage.getItem('currentUser');
+      const display = document.getElementById('currentUserDisplay');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const dashboard = document.getElementById('dashboard');
+
+      if (!username) {
+        alert("You must be logged in to view this page.");
+        window.location.href = "index.html";
+      } else {
+        display.textContent = username;
+        dashboard.classList.remove('hidden');
+      }
+
+      logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('currentRole');
+        window.location.href = "index.html";
+      });
+    });
+  </script>
+</body>
+</html>

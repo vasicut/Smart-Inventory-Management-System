@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Statistics - Smart Inventory</title>
+  <link rel="stylesheet" href="../assets/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Inventory Statistics</h1>
+    
+    <label for="dateFilter"><strong>Show products added after:</strong></label>
+    <input type="date" id="dateFilter" />
+    <ul id="statsList"></ul>
+    
+
+    <h2>Products per Category</h2>
+    <canvas id="categoryChart" width="400" height="300"></canvas>
+
+    <h2>Low Stock per Category</h2>
+    <canvas id="lowStockChart" width="400" height="300"></canvas>
+
+    <button id="exportBtn">Export CSV</button>
+    <button id="exportPdfBtn" style="margin-top:10px;">Export PDF</button>
+    <p><a href="profile.html">← Back to Dashboard</a></p>
+  </div>
+
+  <script>
+    let allProducts = [];
+    let categoryChart, lowStockChart;
+
+    document.getElementById("dateFilter").addEventListener("change", updateStatistics);
+    updateStatistics();
+
+    function updateStatistics() {
+      const user = localStorage.getItem('currentUser');  // preia userul logat
+
+      fetch(`../api/get_products.php?user=${encodeURIComponent(user)}`)
+      .then(res => res.json())
+      .then(products => {
+        const selectedDate = document.getElementById("dateFilter").value;
+        if (selectedDate) {
+          products = products.filter(p => new Date(p.created_at) >= new Date(selectedDate));
+        }
+        allProducts = products;
+        const total = products.length;
+        const lowStock = products.filter(p => p.quantity < 5).length;
+
+        const categoryCounts = {};
+        const lowStockCounts = {};
+
+        products.forEach(p => {
+          categoryCounts[p.category] = (categoryCounts[p.category] || 0) + 1;
+          if (p.quantity < 5) {
+            lowStockCounts[p.category] = (lowStockCounts[p.category] || 0) + 1;
+          }
+        });
+
+        const statsList = document.getElementById('statsList');
+        statsList.innerHTML = `
+          <li><strong>Total products:</strong> ${total}</li>
+          <li><strong>Low stock products:</strong> ${lowStock}</li>
+        `;
+
+        for (let cat in categoryCounts) {
+          statsList.innerHTML += `<li><strong>${cat}:</strong> ${categoryCounts[cat]} product(s)</li>`;
+        }
+
+        // Chart: products per category
+        const ctx1 = document.getElementById('categoryChart').getContext('2d');
+        if (categoryChart) categoryChart.destroy();
+        categoryChart = new Chart(ctx1, {
+          type: 'bar',
+          data: {
+            labels: Object.keys(categoryCounts),
+            datasets: [{
+              label: 'Products per Category',
+              data: Object.values(categoryCounts),
+              backgroundColor: 'rgba(54, 162, 235, 0.6)',
+              borderColor: 'rgba(54, 162, 235, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+
+        // Chart: low stock per category
+        const ctx2 = document.getElementById('lowStockChart').getContext('2d');
+        if (lowStockChart) lowStockChart.destroy();
+        lowStockChart = new Chart(ctx2, {
+          type: 'bar',
+          data: {
+            labels: Object.keys(lowStockCounts),
+            datasets: [{
+              label: 'Low Stock (<5) per Category',
+              data: Object.values(lowStockCounts),
+              backgroundColor: 'rgba(255, 99, 132, 0.6)',
+              borderColor: 'rgba(255, 99, 132, 1)',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            scales: { y: { beginAtZero: true } }
+          }
+        });
+      });
+    }
+
+    // Export CSV
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const csvRows = [["ID", "Name", "Quantity", "Category"]];
+      allProducts.forEach(p => {
+        csvRows.push([p.id, p.name, p.quantity, p.category]);
+      });
+
+      const csvContent = csvRows.map(e => e.join(",")).join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.setAttribute("href", url);
+      a.setAttribute("download", "inventory_data.csv");
+      a.click();
+    });
+
+    // Export PDF
+    document.getElementById('exportPdfBtn').addEventListener('click', () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      doc.setFontSize(16);
+      doc.text("Smart Inventory - Product Report", 20, 20);
+      doc.setFontSize(12);
+
+      let y = 30;
+      allProducts.forEach((p, i) => {
+        doc.text(`${i + 1}. ${p.name} - ${p.quantity} pcs (${p.category})`, 20, y);
+        y += 8;
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
+      });
+
+      doc.save("inventory_report.pdf");
+    });
+  </script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</body>
+</html>
