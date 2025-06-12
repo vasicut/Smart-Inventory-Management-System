@@ -19,4 +19,4 @@ A web application for managing inventory with user authentication and product ma
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/smart-inventory.git
+   git clone https://github.com/vasicut/smart-inventory.git
